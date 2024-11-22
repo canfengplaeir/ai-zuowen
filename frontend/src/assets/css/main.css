@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 自定义样式 */
+.btn {
+  @apply rounded-lg;
+}
+
+.card {
+  @apply rounded-lg;
+}
+
+.input {
+  @apply rounded-lg;
+}
+
+.loading {
+  @apply text-primary;
+} 
