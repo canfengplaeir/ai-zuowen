@@ -5,11 +5,16 @@ import path from 'path'
 export default defineConfig({
   plugins: [vue()],
   server: {
+    host: '0.0.0.0',
     port: 3000,
+    strictPort: true,
+    open: false,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       }
     }
   },

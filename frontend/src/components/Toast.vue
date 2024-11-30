@@ -1,18 +1,25 @@
 <template>
-  <div class="toast toast-top toast-end z-50">
-    <template v-for="toast in toasts" :key="toast.id">
-      <div :class="['alert shadow-lg', getAlertClass(toast.type)]">
-        <div class="flex items-center">
-          <span :class="getIconClass(toast.type)" />
-          <span class="ml-2">{{ toast.message }}</span>
+  <div class="toast-container fixed top-4 right-4 flex flex-col gap-2 z-[99999]">
+    <TransitionGroup name="toast">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="[
+          'toast-item',
+          `toast-${toast.type}`
+        ]"
+      >
+        <div class="toast-content">
+          <span :class="['toast-icon', getIconClass(toast.type)]" />
+          <span class="toast-message">{{ toast.message }}</span>
         </div>
-        <button class="btn btn-ghost btn-xs" @click="removeToast(toast.id)">
+        <button class="toast-close" @click="removeToast(toast.id)">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
-    </template>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -22,7 +29,23 @@ import { ref } from 'vue'
 const toasts = ref([])
 let toastId = 0
 
-export const useToast = () => {
+const getIconClass = (type) => {
+  switch (type) {
+    case 'success': return 'mask-check'
+    case 'error': return 'mask-x'
+    case 'warning': return 'mask-exclamation'
+    default: return 'mask-info'
+  }
+}
+
+const removeToast = (id) => {
+  const index = toasts.value.findIndex(toast => toast.id === id)
+  if (index > -1) {
+    toasts.value.splice(index, 1)
+  }
+}
+
+const createToast = () => {
   const show = (message, type = 'info', duration = 3000) => {
     const id = toastId++
     toasts.value.push({ id, message, type })
@@ -30,13 +53,6 @@ export const useToast = () => {
     setTimeout(() => {
       removeToast(id)
     }, duration)
-  }
-  
-  const removeToast = (id) => {
-    const index = toasts.value.findIndex(toast => toast.id === id)
-    if (index > -1) {
-      toasts.value.splice(index, 1)
-    }
   }
   
   return {
@@ -48,63 +64,85 @@ export const useToast = () => {
   }
 }
 
+export const useToast = createToast
+
 export default {
   name: 'Toast',
   setup() {
-    const getAlertClass = (type) => {
-      switch (type) {
-        case 'success': return 'alert-success'
-        case 'error': return 'alert-error'
-        case 'warning': return 'alert-warning'
-        default: return 'alert-info'
-      }
-    }
-
-    const getIconClass = (type) => {
-      const baseClass = 'mask mask-center h-4 w-4 bg-current'
-      switch (type) {
-        case 'success':
-          return `${baseClass} mask-check`
-        case 'error':
-          return `${baseClass} mask-x`
-        case 'warning':
-          return `${baseClass} mask-exclamation`
-        default:
-          return `${baseClass} mask-info`
-      }
-    }
-    
     return {
       toasts,
-      getAlertClass,
       getIconClass,
-      removeToast: (id) => {
-        const index = toasts.value.findIndex(toast => toast.id === id)
-        if (index > -1) {
-          toasts.value.splice(index, 1)
-        }
-      }
+      removeToast
     }
   }
 }
 </script>
 
 <style scoped>
-.toast {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.toast-container {
+  @apply fixed top-4 right-4 flex flex-col gap-2;
+  z-index: 99999; /* 使用更高的 z-index */
 }
 
-.alert {
+.toast-item {
+  @apply flex items-center justify-between px-4 py-3 rounded-lg shadow-lg min-w-[320px] max-w-[420px];
+  backdrop-filter: blur(8px);
   animation: slideIn 0.3s ease-out;
-  min-width: 300px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+}
+
+.toast-content {
+  @apply flex items-center gap-3;
+}
+
+.toast-message {
+  @apply text-sm font-medium;
+}
+
+.toast-close {
+  @apply p-1 rounded-full hover:bg-black/10 transition-colors;
+}
+
+.toast-icon {
+  @apply h-5 w-5 bg-current;
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+}
+
+/* 不同类型的样式 */
+.toast-success {
+  @apply bg-success/10 text-success border border-success/20;
+}
+
+.toast-error {
+  @apply bg-error/10 text-error border border-error/20;
+}
+
+.toast-warning {
+  @apply bg-warning/10 text-warning border border-warning/20;
+}
+
+.toast-info {
+  @apply bg-info/10 text-info border border-info/20;
+}
+
+/* 动画效果 */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
 }
 
 @keyframes slideIn {
@@ -118,15 +156,7 @@ export default {
   }
 }
 
-.mask {
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-
+/* 图标样式 */
 .mask-check {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");

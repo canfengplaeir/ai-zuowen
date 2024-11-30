@@ -1,46 +1,64 @@
 <template>
-  <div class="card bg-base-100 shadow-xl">
-    <div class="card-body">
-      <h2 class="card-title">管理员面板</h2>
-      
-      <!-- 统计信息 -->
-      <div class="stats shadow">
-        <div class="stat">
-          <div class="stat-title">总用户数</div>
-          <div class="stat-value">{{ stats.userCount }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">总批改数</div>
-          <div class="stat-value">{{ stats.essayCount }}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-title">今日批改</div>
-          <div class="stat-value">{{ stats.todayCount }}</div>
-        </div>
+  <div class="p-4 md:p-6 pt-20 md:pt-6">
+    <h2 class="text-2xl font-bold mb-6">管理员控制台</h2>
+    
+    <!-- 统计信息卡片 -->
+    <div class="stats shadow w-full flex-col md:flex-row">
+      <div class="stat">
+        <div class="stat-title">总用户数</div>
+        <div class="stat-value text-lg md:text-2xl">{{ stats.userCount }}</div>
       </div>
+      <div class="stat">
+        <div class="stat-title">总作文数</div>
+        <div class="stat-value text-lg md:text-2xl">{{ stats.essayCount }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-title">今日批改</div>
+        <div class="stat-value text-lg md:text-2xl">{{ stats.todayCount }}</div>
+      </div>
+    </div>
 
-      <!-- 用户列表 -->
+    <!-- 标签页 -->
+    <div class="tabs tabs-boxed flex">
+      <a 
+        class="tab flex-1 md:flex-none" 
+        :class="{ 'tab-active': activeTab === 'users' }"
+        @click="activeTab = 'users'"
+      >
+        用户管理
+      </a>
+      <a 
+        class="tab flex-1 md:flex-none" 
+        :class="{ 'tab-active': activeTab === 'essays' }"
+        @click="activeTab = 'essays'"
+      >
+        作文管理
+      </a>
+    </div>
+
+    <!-- 用户管理 -->
+    <div v-if="activeTab === 'users'" class="overflow-x-auto">
       <div class="overflow-x-auto">
         <table class="table w-full">
           <thead>
             <tr>
-              <th>ID</th>
+              <th class="hidden md:table-cell">ID</th>
               <th>用户名</th>
-              <th>注册时间</th>
+              <th class="hidden md:table-cell">注册时间</th>
               <th>作文数量</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="user in users" :key="user.id">
-              <td>{{ user.id }}</td>
+              <td class="hidden md:table-cell">{{ user.id }}</td>
               <td>{{ user.username }}</td>
-              <td>{{ new Date(user.created_at).toLocaleString() }}</td>
+              <td class="hidden md:table-cell">{{ formatDate(user.created_at) }}</td>
               <td>{{ user.essay_count }}</td>
               <td>
                 <button 
                   class="btn btn-error btn-xs"
-                  @click="deleteUser(user.id)"
+                  @click="handleDeleteUser(user)"
                 >
                   删除
                 </button>
@@ -50,71 +68,159 @@
         </table>
       </div>
     </div>
+
+    <!-- 作文管理 -->
+    <div v-if="activeTab === 'essays'" class="overflow-x-auto">
+      <div class="overflow-x-auto">
+        <table class="table w-full">
+          <thead>
+            <tr>
+              <th class="hidden md:table-cell">ID</th>
+              <th>用户</th>
+              <th>分数</th>
+              <th class="hidden md:table-cell">提交时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="essay in essays" :key="essay.id">
+              <td class="hidden md:table-cell">{{ essay.id }}</td>
+              <td>{{ essay.username }}</td>
+              <td>{{ essay.score }}</td>
+              <td class="hidden md:table-cell">{{ formatDate(essay.created_at) }}</td>
+              <td>
+                <button 
+                  class="btn btn-primary btn-xs"
+                  @click="viewEssay(essay)"
+                >
+                  查看
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 作文详情对话框 -->
+    <dialog id="essay_detail_modal" class="modal">
+      <div class="modal-box w-11/12 max-w-5xl">
+        <h3 class="font-bold text-lg mb-4">作文详情</h3>
+        <div class="prose max-w-none">
+          <div class="space-y-4">
+            <div>
+              <h4 class="font-bold">原文内容：</h4>
+              <p class="whitespace-pre-wrap">{{ selectedEssay?.content }}</p>
+            </div>
+            <div>
+              <h4 class="font-bold">批改意见：</h4>
+              <div class="whitespace-pre-wrap" v-html="selectedEssay?.feedback"></div>
+            </div>
+            <div>
+              <h4 class="font-bold">得分：</h4>
+              <p>{{ selectedEssay?.score }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-action">
+          <form method="dialog">
+            <button class="btn">关闭</button>
+          </form>
+        </div>
+      </div>
+    </dialog>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, reactive, onMounted, inject } from 'vue'
 import http from '../utils/axios'
 import { useToast } from '../components/Toast.vue'
-import { useConfirm } from './ConfirmDialog.vue'
+import { useConfirm } from '../components/ConfirmDialog.vue'
 
-export default {
-  setup() {
-    const toast = useToast()
-    const confirm = useConfirm()
-    const stats = reactive({
-      userCount: 0,
-      essayCount: 0,
-      todayCount: 0
-    })
-    const users = ref([])
+const toast = useToast()
+const confirm = useConfirm()
+const activeTab = ref('users')
+const stats = reactive({
+  userCount: 0,
+  essayCount: 0,
+  todayCount: 0
+})
+const users = ref([])
+const essays = ref([])
+const selectedEssay = ref(null)
 
-    const fetchStats = async () => {
-      try {
-        const response = await http.get('/admin/stats')
-        stats.value = response.data
-      } catch (err) {
-        toast.error('获取统计信息失败')
-      }
-    }
-    
-    const fetchUsers = async () => {
-      try {
-        const response = await http.get('/admin/users')
-        users.value = response.data
-      } catch (err) {
-        toast.error('获取用户列表失败')
-      }
-    }
-    
-    const deleteUser = async (userId) => {
-      const confirmed = await confirm.showConfirm(
-        '删除用户',
-        '确定要删除该用户吗？删除后将无法恢复，且该用户的所有作文记录也将被删除。'
-      )
-      
-      if (confirmed) {
-        try {
-          await http.delete(`/admin/users/${userId}`)
-          await fetchUsers()
-          await fetchStats()
-          toast.success('用户删除成功')
-        } catch (err) {
-          toast.error('删除用户失败')
-        }
-      }
-    }
+const setLoading = inject('setLoading')
 
-    onMounted(async () => {
-      await fetchStats()
+const fetchStats = async () => {
+  setLoading(true, '加载统计信息...')
+  try {
+    const response = await http.get('/essay/admin/stats')
+    Object.assign(stats, response.data)
+  } catch (err) {
+    toast.error('获取统计信息失败')
+  } finally {
+    setLoading(false)
+  }
+}
+
+const fetchUsers = async () => {
+  setLoading(true, '加载用户列表...')
+  try {
+    const response = await http.get('/admin/users')
+    users.value = response.data
+  } catch (err) {
+    toast.error('获取用户列表失败')
+  } finally {
+    setLoading(false)
+  }
+}
+
+const fetchEssays = async () => {
+  setLoading(true, '加载作文列表...')
+  try {
+    const response = await http.get('/essay/admin/all')
+    essays.value = response.data
+  } catch (err) {
+    toast.error('获取作文列表失败')
+  } finally {
+    setLoading(false)
+  }
+}
+
+const handleDeleteUser = async (user) => {
+  setLoading(true, '删除用户中...')
+  const confirmed = await confirm.showConfirm(
+    '删除用户',
+    `确定要删除用户 "${user.username}" 吗？此操作不可恢复。`
+  )
+  
+  if (confirmed) {
+    try {
+      await http.delete(`/admin/users/${user.id}`)
       await fetchUsers()
-    })
-
-    return {
-      stats,
-      users,
-      deleteUser
+      await fetchStats()
+      toast.success('用户删除成功')
+    } catch (err) {
+      toast.error(err.response?.data?.error || '删除用户失败')
+    } finally {
+      setLoading(false)
     }
   }
 }
+
+const viewEssay = (essay) => {
+  selectedEssay.value = essay
+  document.getElementById('essay_detail_modal').showModal()
+}
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleString('zh-CN')
+}
+
+onMounted(async () => {
+  await fetchStats()
+  await fetchUsers()
+  await fetchEssays()
+})
 </script> 

@@ -1,28 +1,37 @@
 import axios from 'axios'
 import { authStore } from '../stores/auth'
 
-// 从环境变量获取 API 地址，如果没有则使用默认值
-const API_URL = import.meta.env.VITE_API_URL || '/api'
-
 const http = axios.create({
-  baseURL: API_URL
+  baseURL: '/api',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
 })
 
-// 添加请求拦截器
+// 请求拦截器
 http.interceptors.request.use(config => {
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+  
   if (authStore.token) {
     config.headers.Authorization = `Bearer ${authStore.token}`
   }
+
   return config
+}, error => {
+  return Promise.reject(error)
 })
 
-// 添加响应拦截器
+// 响应拦截器
 http.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
       authStore.clearAuth()
-      window.location.reload()
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }

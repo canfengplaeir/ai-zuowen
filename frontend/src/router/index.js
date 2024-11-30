@@ -1,35 +1,31 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authStore } from '../stores/auth'
+import Home from '../components/Home.vue'
+import Login from '../components/Login.vue'
+import MainLayout from '../components/MainLayout.vue'
 import EnglishEssay from '../components/EnglishEssay.vue'
 import History from '../components/History.vue'
 import Profile from '../components/Profile.vue'
 import AdminPanel from '../components/AdminPanel.vue'
-import Login from '../components/Login.vue'
-import Home from '../components/Home.vue'
-import MainLayout from '../layouts/MainLayout.vue'
 import NotFound from '../components/NotFound.vue'
+import { authStore } from '../stores/auth'
+import TermsOfService from '../components/TermsOfService.vue'
 
 const routes = [
   {
     path: '/',
-    component: Home,
-    meta: { requiresAuth: false }
+    name: 'home',
+    component: Home
   },
   {
     path: '/login',
     name: 'login',
-    component: Login,
-    meta: { requiresAuth: false }
+    component: Login
   },
   {
     path: '/app',
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [
-      {
-        path: '',
-        redirect: '/app/english-essay'
-      },
       {
         path: 'english-essay',
         name: 'english-essay',
@@ -53,7 +49,11 @@ const routes = [
       }
     ]
   },
-  // 404 路由必须放在最后
+  {
+    path: '/terms',
+    name: 'terms',
+    component: TermsOfService
+  },
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -68,31 +68,13 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = authStore.isAuthenticated()
-  
-  // 不需要认证的路由直接通过
-  if (!to.meta.requiresAuth) {
-    if (isAuthenticated && to.name === 'login') {
-      next('/app/english-essay')
-    } else {
-      next()
-    }
-    return
-  }
-  
-  // 需要认证但未登录
-  if (!isAuthenticated) {
+  if (to.meta.requiresAuth && !authStore.isAuthenticated()) {
     next('/login')
-    return
-  }
-  
-  // 需要管理员权限但不是管理员
-  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next('/app/english-essay')
-    return
+  } else {
+    next()
   }
-  
-  next()
 })
 
 export default router 

@@ -1,21 +1,17 @@
-import os
 import base64
 from typing import Optional, Tuple
 from openai import OpenAI
-from dotenv import load_dotenv
+from .env_manager import env_manager
 
-# 确保在最开始就加载环境变量
-load_dotenv()
 
 class ImageRecognitionService:
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = env_manager.get("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is not set")
-            
+
         self.client = OpenAI(
-            api_key=api_key,
-            base_url=os.getenv("OPENAI_BASE_URL")
+            api_key=api_key, base_url=env_manager.get("OPENAI_BASE_URL")
         )
 
     def recognize_text(self, image_path: str) -> Tuple[Optional[str], Optional[str]]:
@@ -35,16 +31,18 @@ class ImageRecognitionService:
                         "content": [
                             {
                                 "type": "image_url",
-                                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                },
                             },
-                            {"type": "text", "text": "请识别并提取图片中的作文内容"}
-                        ]
+                            {"type": "text", "text": "请识别并提取图片中的作文内容"},
+                        ],
                     }
-                ]
+                ],
             )
-            
+
             return completion.choices[0].message.content, None
-            
+
         except Exception as e:
             error_msg = str(e)
             if "Arrearage" in error_msg:
