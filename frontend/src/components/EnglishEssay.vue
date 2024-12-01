@@ -123,41 +123,57 @@
 
         <!-- 步骤2: 调整图片 -->
         <div v-if="step === 2" class="space-y-4">
-          <div class="cropper-container">
-            <!-- 添加局部加载状态 -->
-            <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-base-100/50 z-10">
+          <div class="cropper-container bg-base-200 rounded-lg overflow-hidden">
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading-overlay">
               <div class="loading loading-spinner loading-lg text-primary"></div>
             </div>
             
-            <div class="cropper-wrapper">
-              <img 
-                ref="cropperImage" 
-                :src="imageUrl" 
-                v-show="imageUrl"
-                class="max-w-full"
-              >
-            </div>
-            <div class="cropper-controls">
-              <button class="btn btn-ghost" @click="resetCrop">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                重置裁剪
-              </button>
-              <div class="flex gap-2">
-                <button class="btn" @click="resetImage">重新选择</button>
-                <button class="btn btn-primary" @click="confirmCrop">确认并提交</button>
-              </div>
-            </div>
+            <img 
+              ref="cropperImage" 
+              :src="imageUrl" 
+              v-show="imageUrl"
+              class="max-w-full"
+            >
+          </div>
+
+          <!-- 按钮组 -->
+          <div class="step-2-buttons">
+            <button 
+              class="btn btn-primary"
+              @click="confirmCrop"
+              :disabled="loading"
+            >
+              确认裁剪
+            </button>
+            <button 
+              class="btn btn-ghost"
+              @click="resetCrop"
+              :disabled="loading"
+            >
+              重置裁剪
+            </button>
+            <button 
+              class="btn btn-error"
+              @click="resetImage"
+              :disabled="loading"
+            >
+              重新选择
+            </button>
           </div>
         </div>
 
         <!-- 步骤3: 批改结果 -->
-        <div v-if="step === 3" class="space-y-6">
+        <div v-if="step === 3" class="space-y-8">
           <!-- 原图预览 -->
           <div class="result-section">
-            <h3 class="text-lg font-medium mb-2">原文图片</h3>
-            <div class="bg-base-200 rounded-lg overflow-hidden">
+            <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              原文图片
+            </h3>
+            <div class="bg-base-200 rounded-lg overflow-hidden shadow-lg">
               <div class="image-container">
                 <img 
                   :src="previewUrl" 
@@ -170,111 +186,144 @@
 
           <!-- 原文内容 -->
           <div class="result-section">
-            <h3 class="text-lg font-medium mb-2">原文内容</h3>
-            <div class="bg-base-200 p-4 rounded-lg">
-              <p class="whitespace-pre-wrap">{{ content }}</p>
+            <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              原文内容
+            </h3>
+            <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+              <p class="whitespace-pre-wrap font-english leading-relaxed">{{ content }}</p>
             </div>
           </div>
 
           <!-- 分数显示 -->
           <div v-if="score !== null" class="result-section">
-            <h3 class="text-lg font-medium mb-2">得分</h3>
-            <div class="flex justify-center">
-              <div class="radial-progress text-primary" :style="{ '--value': score, '--size': '6rem' }">
+            <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              得分评估
+            </h3>
+            <div class="flex items-center gap-6 bg-base-200 p-6 rounded-lg shadow-lg">
+              <div class="radial-progress text-primary" :style="{ '--value': score, '--size': '8rem', '--thickness': '8px' }">
                 {{ score }}
+              </div>
+              <div class="space-y-2">
+                <div class="text-xl font-medium" :class="{
+                  'text-success': score >= 90,
+                  'text-primary': score >= 80 && score < 90,
+                  'text-warning': score >= 60 && score < 80,
+                  'text-error': score < 60
+                }">
+                  {{ getScoreLevel(score) }}
+                </div>
+                <div class="text-base-content/70 text-sm">
+                  {{ getScoreDescription(score) }}
+                </div>
               </div>
             </div>
           </div>
 
           <!-- 批改结果部分 -->
           <div v-if="result" class="result-section">
-            <h3 class="text-lg font-medium mb-2">批改结果</h3>
-            <div class="space-y-6 bg-base-200 p-4 rounded-lg">
+            <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              批改详情
+            </h3>
+            <div class="space-y-6">
               <!-- 总体评价 -->
-              <div class="prose max-w-none">
-                <h4 class="text-base font-medium">总体评价</h4>
-                <p>{{ result.overall_feedback }}</p>
+              <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h4 class="text-base font-medium mb-3 flex items-center gap-2">
+                  <span class="badge badge-primary">总体评价</span>
+                </h4>
+                <p class="leading-relaxed">{{ result.overall_feedback }}</p>
               </div>
 
               <!-- 语法问题 -->
-              <div v-if="result.grammar_issues?.length" class="prose max-w-none">
-                <h4 class="text-base font-medium">语法问题</h4>
-                <div class="space-y-3">
-                  <div v-for="(issue, index) in result.grammar_issues" :key="index" class="bg-base-100 p-3 rounded">
-                    <p class="text-error">错误：{{ issue.error }}</p>
-                    <p class="text-success">修改：{{ issue.correction }}</p>
-                    <p class="text-base-content/70">说明：{{ issue.explanation }}</p>
+              <div v-if="result.grammar_issues?.length" class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h4 class="text-base font-medium mb-4 flex items-center gap-2">
+                  <span class="badge badge-primary">语法问题</span>
+                </h4>
+                <div class="space-y-4">
+                  <div v-for="(issue, index) in result.grammar_issues" 
+                       :key="index" 
+                       class="bg-base-100 p-4 rounded-lg">
+                    <div class="flex flex-col gap-3">
+                      <div class="flex items-start gap-2">
+                        <span class="badge badge-error badge-sm">错误</span>
+                        <p class="font-english">{{ issue.error }}</p>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="badge badge-success badge-sm">修改</span>
+                        <p class="font-english">{{ issue.correction }}</p>
+                      </div>
+                      <div class="flex items-start gap-2 text-base-content/70">
+                        <span class="badge badge-ghost badge-sm">说明</span>
+                        <p>{{ issue.explanation }}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <!-- 词汇反馈 -->
-              <div v-if="result.vocabulary_feedback" class="prose max-w-none">
-                <h4 class="text-base font-medium">词汇运用</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h5 class="text-sm font-medium text-success">亮点用词</h5>
-                    <ul>
-                      <li v-for="(word, index) in result.vocabulary_feedback.highlights" :key="index">
-                        {{ word }}
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 class="text-sm font-medium text-warning">建议改进</h5>
-                    <ul>
-                      <li v-for="(suggestion, index) in result.vocabulary_feedback.suggestions" :key="index">
-                        {{ suggestion }}
-                      </li>
-                    </ul>
-                  </div>
+              <div v-if="result.vocabulary_feedback" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                  <h4 class="text-base font-medium mb-3 flex items-center gap-2">
+                    <span class="badge badge-success">亮点用词</span>
+                  </h4>
+                  <ul class="space-y-2">
+                    <li v-for="(word, index) in result.vocabulary_feedback.highlights" 
+                        :key="index"
+                        class="flex items-center gap-2">
+                      <span class="text-success">•</span>
+                      <span class="font-english">{{ word }}</span>
+                    </li>
+                  </ul>
                 </div>
-              </div>
-
-              <!-- 结构分析 -->
-              <div v-if="result.structure_analysis" class="prose max-w-none">
-                <h4 class="text-base font-medium">结构分析</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h5 class="text-sm font-medium text-success">优点</h5>
-                    <ul>
-                      <li v-for="(strength, index) in result.structure_analysis.strengths" :key="index">
-                        {{ strength }}
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h5 class="text-sm font-medium text-warning">不足</h5>
-                    <ul>
-                      <li v-for="(weakness, index) in result.structure_analysis.weaknesses" :key="index">
-                        {{ weakness }}
-                      </li>
-                    </ul>
-                  </div>
+                <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                  <h4 class="text-base font-medium mb-3 flex items-center gap-2">
+                    <span class="badge badge-warning">建议改进</span>
+                  </h4>
+                  <ul class="space-y-2">
+                    <li v-for="(suggestion, index) in result.vocabulary_feedback.suggestions" 
+                        :key="index"
+                        class="flex items-center gap-2">
+                      <span class="text-warning">•</span>
+                      <span class="font-english">{{ suggestion }}</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
               <!-- 改进建议 -->
-              <div v-if="result.improvement_suggestions?.length" class="prose max-w-none">
-                <h4 class="text-base font-medium">改进建议</h4>
-                <ul>
-                  <li v-for="(suggestion, index) in result.improvement_suggestions" :key="index">
-                    {{ suggestion }}
+              <div v-if="result.improvement_suggestions?.length" class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h4 class="text-base font-medium mb-3 flex items-center gap-2">
+                  <span class="badge badge-primary">改进建议</span>
+                </h4>
+                <ul class="space-y-3">
+                  <li v-for="(suggestion, index) in result.improvement_suggestions" 
+                      :key="index"
+                      class="flex items-start gap-3">
+                    <span class="text-primary font-medium">{{ index + 1 }}.</span>
+                    <span>{{ suggestion }}</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          <!-- 加载中状态 -->
-          <div v-if="loading" class="loading-container">
-            <div class="loading loading-spinner loading-lg text-primary"></div>
-            <p class="mt-4 text-base-content/70">正在批改中，请稍候...</p>
-          </div>
-
           <!-- 底部按钮 -->
           <div class="flex justify-end gap-4 mt-8">
-            <button class="btn" @click="resetAll">重新批改</button>
+            <button class="btn btn-primary" @click="resetAll">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              重新批改
+            </button>
           </div>
         </div>
       </div>
@@ -386,7 +435,10 @@
 
 /* 裁剪区域样式 */
 .cropper-container {
-  @apply bg-base-200 rounded-lg overflow-hidden;
+  @apply relative w-full max-w-3xl mx-auto;  /* 限制最大宽度 */
+  height: 60vh;  /* 使用视口高度的60% */
+  max-height: 600px;  /* 限制最大高度 */
+  min-height: 300px;  /* 设置最小高度 */
 }
 
 .cropper-wrapper {
@@ -662,6 +714,82 @@
 .prose li {
   @apply my-1;
 }
+
+/* 裁剪器样式优化 */
+:deep(.cropper-point) {
+  width: 8px !important;  /* 电脑端默认尺寸 */
+  height: 8px !important;
+  background-color: #0077ff !important;  /* 白色控制点 */
+  border: 2px solid var(--p) !important;  /* 主题色边框 */
+  opacity: 1 !important;
+}
+
+:deep(.cropper-point.point-se) {
+  width: 10px !important;  /* 右下角控制点稍大 */
+  height: 10px !important;
+}
+
+:deep(.cropper-line) {
+  background-color: var(--p) !important;
+  opacity: 0.3 !important;
+}
+
+:deep(.cropper-view-box) {
+  outline: 2px solid var(--p) !important;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  :deep(.cropper-point) {
+    width: 16px !important;  /* 移动端更大的控制点 */
+    height: 16px !important;
+  }
+
+  :deep(.cropper-point.point-se) {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* 图片预览容器 */
+.preview-container {
+  @apply relative w-full max-w-xl mx-auto overflow-hidden rounded-lg;
+  aspect-ratio: 4/3;  /* 固定宽高比 */
+}
+
+.preview-container img {
+  @apply w-full h-full object-contain;
+}
+
+/* 相机界面优化 */
+.camera-container {
+  @apply relative w-full max-w-xl mx-auto overflow-hidden rounded-lg bg-base-200;
+  aspect-ratio: 4/3;
+}
+
+.camera-container video {
+  @apply w-full h-full object-cover;
+}
+
+/* 加载状态样式 */
+.loading-overlay {
+  @apply absolute inset-0 flex items-center justify-center bg-base-100/50 z-10;
+}
+
+/* 按钮组样式 */
+.button-group {
+  @apply flex flex-wrap gap-2 justify-center mt-4;
+}
+
+@media (max-width: 768px) {
+  .button-group {
+    @apply flex-col;
+  }
+
+  .button-group button {
+    @apply w-full;
+  }
+}
 </style>
 
 <script setup>
@@ -721,7 +849,7 @@ const formattedResult = computed(() => {
 })
 
 // 处理拍照上传
-const handleCameraCapture = (blob) => {
+const handleCameraCapture = async (blob) => {
   if (blob) {
     selectedFile.value = new File([blob], 'camera.jpg', { type: 'image/jpeg' })
     if (imageUrl.value) {
@@ -743,11 +871,14 @@ const handleCameraCapture = (blob) => {
         if (img.complete) {
           initCropper()
         } else {
-          img.onload = initCropper
+          img.onload = () => {
+            initCropper()
+          }
         }
       }
 
-      waitForImageLoad()
+      // 添加延迟以确保图片加载
+      setTimeout(waitForImageLoad, 100)
     })
   }
 }
@@ -1018,7 +1149,6 @@ const confirmCrop = async () => {
   }
 
   try {
-    loading.value = true  // 显示局部加载状态
     const canvas = cropper.value.getCroppedCanvas({
       maxWidth: 1920,
       maxHeight: 1080,
@@ -1048,7 +1178,11 @@ const confirmCrop = async () => {
     console.error('裁剪错误:', err)
     toast.error('图片处理失败，请重试')
   } finally {
-    loading.value = false  // 关闭局部加载状态
+    // 清理裁剪器
+    if (cropper.value) {
+      cropper.value.destroy()
+      cropper.value = null
+    }
   }
 }
 
@@ -1162,4 +1296,22 @@ const handleUpload = async () => {
 
 // 添加允许的文件类型
 const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+
+// 获取分数等级
+const getScoreLevel = (score) => {
+  if (score >= 90) return '优秀'
+  if (score >= 80) return '良好'
+  if (score >= 70) return '中等'
+  if (score >= 60) return '及格'
+  return '需要改进'
+}
+
+// 获取分数描述
+const getScoreDescription = (score) => {
+  if (score >= 90) return '你的作文表现出色，继续保持！'
+  if (score >= 80) return '你的作文水平不错，还有提升空间。'
+  if (score >= 70) return '你的作文基本合格，需要更多练习。'
+  if (score >= 60) return '你的作文刚刚及格，要加强训练。'
+  return '你的作文需要更多努力，不要灰心。'
+}
 </script> 

@@ -187,7 +187,7 @@
           </div>
           <div class="flex items-center gap-2">
             <button 
-              class="btn btn-ghost btn-sm tooltip tooltip-bottom" 
+              class="btn btn-ghost btn-sm tooltip tooltip-left" 
               data-tip="复制全文"
               @click="copyContent"
             >
@@ -206,124 +206,132 @@
         </div>
 
         <!-- 可滚动的内容区域 -->
-        <div class="p-6 overflow-y-auto max-h-[calc(90vh-4rem)]">
-          <!-- 原文 -->
-          <div class="mb-8">
-            <h4 class="text-lg font-medium mb-3">原文内容</h4>
-            <div class="bg-base-200 p-4 rounded-lg">
-              <p class="whitespace-pre-wrap font-english">{{ selectedEssay?.content }}</p>
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-4rem)] space-y-8">
+          <!-- 原文内容 -->
+          <div class="result-section">
+            <h4 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              原文内容
+            </h4>
+            <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+              <p class="whitespace-pre-wrap font-english leading-relaxed">{{ selectedEssay?.content }}</p>
             </div>
           </div>
-          
-          <!-- 分数 -->
-          <div class="mb-8">
-            <h4 class="text-lg font-medium mb-3">得分评估</h4>
-            <div class="flex items-center gap-4">
-              <div class="radial-progress text-primary" :style="{ '--value': selectedEssay?.score || 0, '--size': '6rem' }">
+
+          <!-- 分数显示 -->
+          <div class="result-section">
+            <h4 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              得分评估
+            </h4>
+            <div class="flex items-center gap-6 bg-base-200 p-6 rounded-lg shadow-lg">
+              <div class="radial-progress text-primary" :style="{ '--value': selectedEssay?.score || 0, '--size': '8rem', '--thickness': '8px' }">
                 {{ selectedEssay?.score }}
               </div>
-              <div class="text-sm text-base-content/70">
-                {{ getScoreLevel(selectedEssay?.score) }}
+              <div class="space-y-2">
+                <div class="text-xl font-medium" :class="{
+                  'text-success': selectedEssay?.score >= 90,
+                  'text-primary': selectedEssay?.score >= 80 && selectedEssay?.score < 90,
+                  'text-warning': selectedEssay?.score >= 60 && selectedEssay?.score < 80,
+                  'text-error': selectedEssay?.score < 60
+                }">
+                  {{ getScoreLevel(selectedEssay?.score) }}
+                </div>
+                <div class="text-base-content/70 text-sm">
+                  {{ getScoreDescription(selectedEssay?.score) }}
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 批改意见 -->
-          <div class="space-y-8">
-            <!-- 总体评价 -->
-            <div class="feedback-section">
-              <h4 class="text-lg font-medium mb-3">总体评价</h4>
-              <div class="bg-base-200 p-4 rounded-lg">
-                <p>{{ selectedEssay?.feedback?.overall_feedback }}</p>
+          <!-- 批改结果部分 -->
+          <div class="result-section">
+            <h4 class="text-lg font-medium mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              批改详情
+            </h4>
+            <div class="space-y-6">
+              <!-- 总体评价 -->
+              <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h5 class="text-base font-medium mb-3 flex items-center gap-2">
+                  <span class="badge badge-primary">总体评价</span>
+                </h5>
+                <p class="leading-relaxed">{{ selectedEssay?.feedback?.overall_feedback }}</p>
               </div>
-            </div>
 
-            <!-- 语法问题 -->
-            <div v-if="selectedEssay?.feedback?.grammar_issues?.length" class="feedback-section">
-              <h4 class="text-lg font-medium mb-3">语法问题</h4>
-              <div class="space-y-3">
-                <div v-for="(issue, index) in selectedEssay.feedback.grammar_issues" 
-                     :key="index" 
-                     class="bg-base-200 p-4 rounded-lg">
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-start gap-2">
-                      <span class="badge badge-error">错误</span>
-                      <p class="font-english">{{ issue.error }}</p>
-                    </div>
-                    <div class="flex items-start gap-2">
-                      <span class="badge badge-success">修改</span>
-                      <p class="font-english">{{ issue.correction }}</p>
-                    </div>
-                    <div class="flex items-start gap-2 text-base-content/70">
-                      <span class="badge badge-ghost">说明</span>
-                      <p>{{ issue.explanation }}</p>
+              <!-- 语法问题 -->
+              <div v-if="selectedEssay?.feedback?.grammar_issues?.length" class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h5 class="text-base font-medium mb-4 flex items-center gap-2">
+                  <span class="badge badge-primary">语法问题</span>
+                </h5>
+                <div class="space-y-4">
+                  <div v-for="(issue, index) in selectedEssay.feedback.grammar_issues" 
+                       :key="index" 
+                       class="bg-base-100 p-4 rounded-lg">
+                    <div class="flex flex-col gap-3">
+                      <div class="flex items-start gap-2">
+                        <span class="badge badge-error badge-sm">错误</span>
+                        <p class="font-english">{{ issue.error }}</p>
+                      </div>
+                      <div class="flex items-start gap-2">
+                        <span class="badge badge-success badge-sm">修改</span>
+                        <p class="font-english">{{ issue.correction }}</p>
+                      </div>
+                      <div class="flex items-start gap-2 text-base-content/70">
+                        <span class="badge badge-ghost badge-sm">说明</span>
+                        <p>{{ issue.explanation }}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 词汇反馈 -->
-            <div v-if="selectedEssay?.feedback?.vocabulary_feedback" class="feedback-section">
-              <h4 class="text-lg font-medium mb-3">词汇运用</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-base-200 p-4 rounded-lg">
-                  <h5 class="text-success font-medium mb-2">亮点用词</h5>
+              <!-- 词汇反馈 -->
+              <div v-if="selectedEssay?.feedback?.vocabulary_feedback" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                  <h5 class="text-base font-medium mb-3 flex items-center gap-2">
+                    <span class="badge badge-success">亮点用词</span>
+                  </h5>
                   <ul class="space-y-2">
                     <li v-for="(word, index) in selectedEssay.feedback.vocabulary_feedback.highlights" 
                         :key="index"
-                        class="font-english">
-                      {{ word }}
+                        class="flex items-center gap-2">
+                      <span class="text-success">•</span>
+                      <span class="font-english">{{ word }}</span>
                     </li>
                   </ul>
                 </div>
-                <div class="bg-base-200 p-4 rounded-lg">
-                  <h5 class="text-warning font-medium mb-2">建议改进</h5>
+                <div class="bg-base-200 p-6 rounded-lg shadow-lg">
+                  <h5 class="text-base font-medium mb-3 flex items-center gap-2">
+                    <span class="badge badge-warning">建议改进</span>
+                  </h5>
                   <ul class="space-y-2">
                     <li v-for="(suggestion, index) in selectedEssay.feedback.vocabulary_feedback.suggestions" 
                         :key="index"
-                        class="font-english">
-                      {{ suggestion }}
+                        class="flex items-center gap-2">
+                      <span class="text-warning">•</span>
+                      <span class="font-english">{{ suggestion }}</span>
                     </li>
                   </ul>
                 </div>
               </div>
-            </div>
 
-            <!-- 结构分析 -->
-            <div v-if="selectedEssay?.feedback?.structure_analysis" class="feedback-section">
-              <h4 class="text-lg font-medium mb-3">结构分析</h4>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-base-200 p-4 rounded-lg">
-                  <h5 class="text-success font-medium mb-2">优点</h5>
-                  <ul class="space-y-2">
-                    <li v-for="(strength, index) in selectedEssay.feedback.structure_analysis.strengths" 
-                        :key="index">
-                      {{ strength }}
-                    </li>
-                  </ul>
-                </div>
-                <div class="bg-base-200 p-4 rounded-lg">
-                  <h5 class="text-warning font-medium mb-2">不足</h5>
-                  <ul class="space-y-2">
-                    <li v-for="(weakness, index) in selectedEssay.feedback.structure_analysis.weaknesses" 
-                        :key="index">
-                      {{ weakness }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- 改进建议 -->
-            <div v-if="selectedEssay?.feedback?.improvement_suggestions?.length" class="feedback-section">
-              <h4 class="text-lg font-medium mb-3">改进建议</h4>
-              <div class="bg-base-200 p-4 rounded-lg">
-                <ul class="space-y-2">
+              <!-- 改进建议 -->
+              <div v-if="selectedEssay?.feedback?.improvement_suggestions?.length" class="bg-base-200 p-6 rounded-lg shadow-lg">
+                <h5 class="text-base font-medium mb-3 flex items-center gap-2">
+                  <span class="badge badge-primary">改进建议</span>
+                </h5>
+                <ul class="space-y-3">
                   <li v-for="(suggestion, index) in selectedEssay.feedback.improvement_suggestions" 
                       :key="index"
-                      class="flex items-start gap-2">
-                    <span class="text-primary">{{ index + 1 }}.</span>
+                      class="flex items-start gap-3">
+                    <span class="text-primary font-medium">{{ index + 1 }}.</span>
                     <span>{{ suggestion }}</span>
                   </li>
                 </ul>
@@ -545,6 +553,16 @@ const getScoreLevel = (score) => {
   if (score >= 70) return '中等';
   if (score >= 60) return '及格';
   return '需要改进';
+}
+
+// 获取分数描述
+const getScoreDescription = (score) => {
+  if (!score) return '暂无评分'
+  if (score >= 90) return '你的作文表现出色，继续保持！'
+  if (score >= 80) return '你的作文水平不错，还有提升空间。'
+  if (score >= 70) return '你的作文基本合格，需要更多练习。'
+  if (score >= 60) return '你的作文刚刚及格，要加强训练。'
+  return '你的作文需要更多努力，不要灰心。'
 }
 
 // 处理模态框点击
