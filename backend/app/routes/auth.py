@@ -82,6 +82,7 @@ def get_profile():
             "is_admin": user.is_admin,
             "essay_count": essay_count,
             "created_at": user.created_at.isoformat(),
+            "remaining_corrections": user.remaining_corrections,
         }
     )
 

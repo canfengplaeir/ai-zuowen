@@ -34,6 +34,13 @@
       >
         作文管理
       </a>
+      <a 
+        class="tab flex-1 md:flex-none" 
+        :class="{ 'tab-active': activeTab === 'codes' }"
+        @click="activeTab = 'codes'"
+      >
+        激活码管理
+      </a>
     </div>
 
     <!-- 用户管理 -->
@@ -94,6 +101,91 @@
                   @click="viewEssay(essay)"
                 >
                   查看
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 激活码管理 -->
+    <div v-if="activeTab === 'codes'" class="space-y-6">
+      <!-- 生成激活码表单 -->
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <h3 class="card-title">生成激活码</h3>
+          <div class="flex flex-col md:flex-row gap-4">
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">生成数量</span>
+              </label>
+              <input 
+                type="number" 
+                v-model="generateCount"
+                class="input input-bordered" 
+                min="1"
+                max="100"
+              />
+            </div>
+            <div class="form-control">
+              <label class="label">
+                <span class="label-text">批改次数</span>
+              </label>
+              <input 
+                type="number" 
+                v-model="correctionCount"
+                class="input input-bordered" 
+                min="1"
+              />
+            </div>
+            <div class="form-control mt-8">
+              <button 
+                class="btn btn-primary"
+                @click="generateCodes"
+                :disabled="generating"
+              >
+                {{ generating ? '生成中...' : '生成激活码' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 激活码列表 -->
+      <div class="overflow-x-auto">
+        <table class="table w-full">
+          <thead>
+            <tr>
+              <th>激活码</th>
+              <th>批改次数</th>
+              <th>状态</th>
+              <th>使用者</th>
+              <th>使用时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="code in activationCodes" :key="code.id">
+              <td>{{ code.code }}</td>
+              <td>{{ code.correction_count }}</td>
+              <td>
+                <span 
+                  class="badge" 
+                  :class="code.is_used ? 'badge-error' : 'badge-success'"
+                >
+                  {{ code.is_used ? '已使用' : '未使用' }}
+                </span>
+              </td>
+              <td>{{ code.used_by_username || '-' }}</td>
+              <td>{{ code.used_at ? formatDate(code.used_at) : '-' }}</td>
+              <td>
+                <button 
+                  class="btn btn-error btn-xs"
+                  @click="deleteCode(code.id)"
+                  :disabled="code.is_used"
+                >
+                  删除
                 </button>
               </td>
             </tr>
@@ -218,9 +310,64 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
+// 添加激活码相关的状态
+const generateCount = ref(1)
+const correctionCount = ref(10)
+const generating = ref(false)
+const activationCodes = ref([])
+
+// 生成激活码
+const generateCodes = async () => {
+  if (generating.value) return
+  
+  try {
+    generating.value = true
+    const response = await http.post('/activation/generate', {
+      count: generateCount.value,
+      correction_count: correctionCount.value
+    })
+    
+    toast.success(response.data.message)
+    await fetchActivationCodes()
+  } catch (err) {
+    toast.error(err.response?.data?.error || '生成失败')
+  } finally {
+    generating.value = false
+  }
+}
+
+// 获取激活码列表
+const fetchActivationCodes = async () => {
+  try {
+    const response = await http.get('/activation/list')
+    activationCodes.value = response.data.codes
+  } catch (err) {
+    toast.error('获取激活码列表失败')
+  }
+}
+
+// 删除激活码
+const deleteCode = async (codeId) => {
+  const confirmed = await confirm.showConfirm(
+    '删除激活码',
+    '确定要删除这个激活码吗？此操作不可恢复。'
+  )
+  
+  if (confirmed) {
+    try {
+      await http.delete(`/activation/${codeId}`)
+      toast.success('删除成功')
+      await fetchActivationCodes()
+    } catch (err) {
+      toast.error(err.response?.data?.error || '删除失败')
+    }
+  }
+}
+
 onMounted(async () => {
   await fetchStats()
   await fetchUsers()
   await fetchEssays()
+  await fetchActivationCodes()
 })
 </script> 

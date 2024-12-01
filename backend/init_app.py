@@ -76,11 +76,22 @@ def init_application():
                         is_admin=True,
                     )
 
+                    admin.remaining_corrections = 999999  # 给管理员设置足够多的次数
                     db.session.add(admin)
                     db.session.commit()
                     print("管理员账号创建成功")
             else:
-                print("检测到已存在的数据库，跳过初始化步骤。")
+                # 检查是否需要添加新字段
+                try:
+                    User.query.first()
+                except Exception as e:
+                    if "no such column: users.remaining_corrections" in str(e):
+                        print("添加 remaining_corrections 字段...")
+                        db.engine.execute(
+                            "ALTER TABLE users ADD COLUMN remaining_corrections INTEGER DEFAULT 0"
+                        )
+                        db.session.commit()
+                        print("字段添加成功")
 
             print("应用初始化完成！")
             return True

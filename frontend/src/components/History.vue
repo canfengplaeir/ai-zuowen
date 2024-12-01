@@ -419,19 +419,6 @@ const toast = useToast()
 const confirm = useConfirm()
 const setLoading = inject('setLoading')
 
-const getImageUrl = async (userId, filename) => {
-  try {
-    // 移除多余的 /api 前缀，因为 axios 已经配置了 baseURL
-    const response = await http.get(`/essay/image/${userId}/${filename}`, {
-      responseType: 'blob'
-    })
-    return URL.createObjectURL(response.data)
-  } catch (err) {
-    console.error('获取图片失败:', err)
-    return '' // 返回空字符串表示加载失败
-  }
-}
-
 const fetchEssays = async () => {
   setLoading(true, '加载历史记录中...')
   try {
@@ -439,29 +426,11 @@ const fetchEssays = async () => {
       params: { page: currentPage.value }
     })
     
-    // 处理每个作文的图片
-    const essaysWithImages = await Promise.all(
-      response.data.essays.map(async essay => ({
-        ...essay,
-        // 移除多余的 /api 前缀
-        image_url: await getImageUrl(essay.user_id, essay.original_image)
-      }))
-    )
-    
-    essays.value = essaysWithImages
+    // 直接使用返回的作文数据，不处理图片
+    essays.value = response.data.essays
     totalPages.value = response.data.total_pages
     totalEssays.value = response.data.total
     
-    // 计算统计数据
-    const now = new Date()
-    monthlyEssays.value = essays.value.filter(essay => {
-      const essayDate = new Date(essay.created_at)
-      return essayDate.getMonth() === now.getMonth()
-    }).length
-    
-    const scores = essays.value.map(essay => essay.score).filter(score => score)
-    averageScore.value = scores.length ? 
-      Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
   } catch (err) {
     toast.error('获取历史记录失败')
   } finally {
@@ -728,11 +697,9 @@ onMounted(() => {
 
 // 组件卸载时清理 blob URLs
 onUnmounted(() => {
-  essays.value.forEach(essay => {
-    if (essay.image_url && essay.image_url.startsWith('blob:')) {
-      URL.revokeObjectURL(essay.image_url)
-    }
-  })
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
 })
 </script>
 

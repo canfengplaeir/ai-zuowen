@@ -2,6 +2,13 @@
   <div class="p-4 md:p-6 space-y-6 md:pt-6 pt-16">
     <div class="card bg-base-100 shadow-xl min-h-[calc(100vh-6rem)] md:min-h-0">
       <div class="card-body p-4 md:p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold">英语作文批改</h2>
+          <div class="text-base-content/70">
+            剩余批改次数: <span class="text-primary font-bold">{{ remainingCorrections }}</span>
+          </div>
+        </div>
+        
         <h2 class="card-title mb-6">英语作文批改</h2>
         
         <!-- 步骤指示器 -->
@@ -165,25 +172,6 @@
 
         <!-- 步骤3: 批改结果 -->
         <div v-if="step === 3" class="space-y-8">
-          <!-- 原图预览 -->
-          <div class="result-section">
-            <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              原文图片
-            </h3>
-            <div class="bg-base-200 rounded-lg overflow-hidden shadow-lg">
-              <div class="image-container">
-                <img 
-                  :src="previewUrl" 
-                  alt="预览" 
-                  class="w-full h-auto object-contain"
-                />
-              </div>
-            </div>
-          </div>
-
           <!-- 原文内容 -->
           <div class="result-section">
             <h3 class="text-lg font-medium mb-4 flex items-center gap-2">
@@ -761,7 +749,7 @@
   @apply w-full h-full object-contain;
 }
 
-/* 相机界面优化 */
+/* 相机界面优 */
 .camera-container {
   @apply relative w-full max-w-xl mx-auto overflow-hidden rounded-lg bg-base-200;
   aspect-ratio: 4/3;
@@ -793,7 +781,7 @@
 </style>
 
 <script setup>
-import { ref, computed, onUnmounted, watch, inject, nextTick } from 'vue'
+import { ref, computed, onUnmounted, watch, inject, nextTick, onMounted } from 'vue'
 import http from '../utils/axios'
 import { authStore } from '../stores/auth'
 import { useToast } from '../components/Toast.vue'
@@ -833,6 +821,7 @@ const cameraLoading = ref(false)
 const router = useRouter()
 const webcamRef = ref(null)
 const score = ref(null)  // 添加 score ref
+const remainingCorrections = ref(0)
 
 const formattedResult = computed(() => {
   if (!result.value) return ''
@@ -1116,7 +1105,7 @@ const closeCamera = () => {
   stopStream()
 }
 
-// 监听相关状态变化
+// 监听相关态变化
 watch([
   () => router.currentRoute.value.path, // 路由变化
   step, // 步骤变化
@@ -1135,7 +1124,7 @@ onUnmounted(() => {
   if (imageUrl.value) {
     URL.revokeObjectURL(imageUrl.value)
   }
-  if (previewUrl.value) {
+  if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
     URL.revokeObjectURL(previewUrl.value)
   }
 })
@@ -1219,6 +1208,11 @@ const uploadEssay = async () => {
     return false
   }
 
+  if (remainingCorrections.value <= 0) {
+    toast.error('剩余批改次数不足，请在个人中心激活更多次数')
+    return false
+  }
+
   try {
     loading.value = true
     const formData = new FormData()
@@ -1230,15 +1224,7 @@ const uploadEssay = async () => {
       content.value = response.data.content
       result.value = response.data.feedback
       score.value = response.data.score
-      
-      if (response.data.image_path) {
-        // 移除返回路径中的 /api 前缀
-        const imagePath = response.data.image_path.replace(/^\/api/, '')
-        const imageResponse = await http.get(imagePath, {
-          responseType: 'blob'
-        })
-        previewUrl.value = URL.createObjectURL(imageResponse.data)
-      }
+      remainingCorrections.value = response.data.remaining_corrections
       
       toast.success('作文批改完成')
       return true
@@ -1246,7 +1232,11 @@ const uploadEssay = async () => {
     return false
   } catch (err) {
     console.error('上传错误:', err)
-    toast.error(err.response?.data?.error || '上传失败')
+    if (err.response?.status === 403) {
+      toast.error('剩余批改次数不足，请在个人中心激活更多次数')
+    } else {
+      toast.error(err.response?.data?.error || '上传失败')
+    }
     return false
   } finally {
     loading.value = false
@@ -1314,4 +1304,20 @@ const getScoreDescription = (score) => {
   if (score >= 60) return '你的作文刚刚及格，要加强训练。'
   return '你的作文需要更多努力，不要灰心。'
 }
+
+// 获取用户信息
+const fetchUserInfo = async () => {
+  try {
+    const response = await http.get('/auth/user/profile')
+    remainingCorrections.value = response.data.remaining_corrections
+  } catch (err) {
+    console.error('获取用户信息失败:', err)
+    toast.error('获取用户信息失败')
+  }
+}
+
+// 组件挂载时获取用户信息
+onMounted(() => {
+  fetchUserInfo()
+})
 </script> 

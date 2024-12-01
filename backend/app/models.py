@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Dict, Any
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 import json
 
 db = SQLAlchemy()
@@ -11,13 +11,13 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(nullable=False)
-    is_admin: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False)
+    password = Column(String(120), nullable=False)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    remaining_corrections = Column(Integer, default=0)
 
-    # 修改关系定义
     essays = relationship(
         "Essay", back_populates="author", cascade="all, delete-orphan"
     )
@@ -26,30 +26,29 @@ class User(db.Model):
         self.username = username
         self.password = password
         self.is_admin = is_admin
+        self.remaining_corrections = 0
 
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
         return {
             "id": self.id,
             "username": self.username,
             "is_admin": self.is_admin,
             "created_at": self.created_at.isoformat(),
             "essay_count": len(list(self.essays)),
+            "remaining_corrections": self.remaining_corrections,
         }
 
 
 class Essay(db.Model):
     __tablename__ = "essays"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    content: Mapped[str] = mapped_column(nullable=False)
-    feedback: Mapped[str] = mapped_column(nullable=True)
-    score: Mapped[int] = mapped_column(nullable=True)
-    original_image: Mapped[str] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(String, nullable=False)
+    feedback = Column(String, nullable=True)
+    score = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 修改关系定义
     author = relationship("User", back_populates="essays")
 
     def __init__(
@@ -58,21 +57,16 @@ class Essay(db.Model):
         content: str,
         feedback: dict,
         score: int,
-        original_image: str,
     ) -> None:
         self.user_id = user_id
         self.content = content
-        # 确保 feedback 是有效的 JSON 字符串
         self.feedback = (
             json.dumps(feedback) if isinstance(feedback, dict) else str(feedback)
         )
         self.score = score
-        self.original_image = original_image
 
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
         try:
-            # 尝试解析 JSON，如果失败则返回原始字符串
             feedback_data = json.loads(self.feedback) if self.feedback else None
         except json.JSONDecodeError:
             feedback_data = self.feedback
@@ -83,7 +77,36 @@ class Essay(db.Model):
             "content": self.content,
             "feedback": feedback_data,
             "score": self.score,
-            "original_image": self.original_image,
             "created_at": self.created_at.isoformat(),
             "username": self.author.username if self.author else None,
+        }
+
+
+class ActivationCode(db.Model):
+    __tablename__ = "activation_codes"
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(32), unique=True, nullable=False)
+    correction_count = Column(Integer, nullable=False)
+    is_used = Column(Boolean, default=False)
+    used_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"))
+
+    def __init__(self, code: str, correction_count: int, created_by: int) -> None:
+        self.code = code
+        self.correction_count = correction_count
+        self.created_by = created_by
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "code": self.code,
+            "correction_count": self.correction_count,
+            "is_used": self.is_used,
+            "used_by": self.used_by,
+            "used_at": self.used_at.isoformat() if self.used_at else None,
+            "created_at": self.created_at.isoformat(),
+            "created_by": self.created_by,
         }

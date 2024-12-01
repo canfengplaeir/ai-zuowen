@@ -1,46 +1,41 @@
 <template>
   <div class="p-4 md:p-6 pt-20 md:pt-6">
-    <!-- 用户信息区域 -->
-    <div class="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-      <!-- 用户头像 -->
-      <div class="avatar placeholder">
-        <div class="bg-neutral text-neutral-content rounded-full w-20 md:w-24">
-          <span class="text-2xl md:text-3xl">{{ username?.charAt(0).toUpperCase() }}</span>
-        </div>
-      </div>
-      
-      <!-- 用户统计信息 -->
-      <div class="flex-1">
-        <div class="flex items-center gap-2 mb-4">
-          <h2 class="text-xl md:text-2xl font-bold">{{ username }}</h2>
-          <!-- 用户角色标签 -->
-          <div 
-            :class="[
-              'badge', 
-              isAdmin ? 'badge-primary' : 'badge-secondary',
-              'badge-lg'
-            ]"
-          >
-            {{ isAdmin ? '管理员' : '用户' }}
+    <!-- 个人信息卡片 -->
+    <div class="card bg-base-100 shadow-lg mb-6">
+      <div class="card-body">
+        <h3 class="card-title mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          个人资料
+        </h3>
+        
+        <div class="space-y-4">
+          <!-- 用户名 -->
+          <div class="flex items-center gap-4">
+            <div class="stat-title">用户名</div>
+            <div class="stat-value text-lg">{{ userInfo.username }}</div>
           </div>
-        </div>
-        <div class="stats shadow w-full flex-col md:flex-row">
-          <div class="stat">
-            <div class="stat-title">批改总数</div>
-            <div class="stat-value text-lg md:text-2xl">{{ essayCount }}</div>
-          </div>
-          <div class="stat">
+
+          <!-- 注册时间 -->
+          <div class="flex items-center gap-4">
             <div class="stat-title">注册时间</div>
-            <div class="stat-value text-base">{{ formatDate(createdAt) }}</div>
+            <div class="stat-value text-lg">{{ formatDate(userInfo.created_at) }}</div>
+          </div>
+
+          <!-- 作文数量 -->
+          <div class="flex items-center gap-4">
+            <div class="stat-title">作文数量</div>
+            <div class="stat-value text-lg">{{ userInfo.essay_count }}</div>
+          </div>
+
+          <!-- 修改密码按钮 -->
+          <div class="flex justify-end">
+            <button class="btn btn-primary" @click="showPasswordDialog">
+              修改密码
+            </button>
           </div>
         </div>
-      </div>
-      
-      <!-- 修改密码按钮 -->
-      <div class="w-full md:w-auto">
-        <button class="btn btn-primary w-full md:w-auto" @click="showPasswordDialog">
-          修改密码
-        </button>
       </div>
     </div>
 
@@ -117,6 +112,46 @@
         <button>关闭</button>
       </form>
     </dialog>
+
+    <!-- 添加激活码区域 -->
+    <div class="card bg-base-100 shadow-lg mb-6">
+      <div class="card-body">
+        <h3 class="card-title mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          激活码
+        </h3>
+        
+        <div class="space-y-4">
+          <!-- 剩余次数显示 -->
+          <div class="flex items-center gap-4">
+            <div class="stat-title">剩余批改次数</div>
+            <div class="stat-value text-primary">{{ userInfo.remaining_corrections || 0 }}</div>
+          </div>
+
+          <!-- 激活码输入 -->
+          <div class="form-control">
+            <div class="input-group">
+              <input 
+                type="text" 
+                v-model="activationCode"
+                placeholder="请输入激活码" 
+                class="input input-bordered flex-1"
+                :disabled="activating"
+              />
+              <button 
+                class="btn btn-primary" 
+                @click="activateCode"
+                :disabled="!activationCode || activating"
+              >
+                {{ activating ? '激活中...' : '激活' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -137,6 +172,16 @@ const username = ref('')
 const essayCount = ref(0)
 const createdAt = ref(null)
 const isAdmin = ref(false)
+const activationCode = ref('')
+const activating = ref(false)
+
+const userInfo = ref({
+  username: '',
+  essay_count: 0,
+  created_at: null,
+  is_admin: false,
+  remaining_corrections: 0
+})
 
 // 表单验证
 const isFormValid = computed(() => {
@@ -151,10 +196,7 @@ const fetchUserInfo = async () => {
   setLoading(true, '加载用户信息...')
   try {
     const response = await http.get('/auth/user/profile')
-    username.value = response.data.username
-    essayCount.value = response.data.essay_count
-    createdAt.value = response.data.created_at
-    isAdmin.value = response.data.is_admin
+    userInfo.value = response.data
   } catch (err) {
     toast.error('获取用户信息失败')
   } finally {
@@ -168,7 +210,9 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
   
@@ -224,6 +268,30 @@ const changePassword = async () => {
   }
 }
 
+const activateCode = async () => {
+  if (!activationCode.value) {
+    toast.warning('请输入激活码')
+    return
+  }
+
+  try {
+    activating.value = true
+    const response = await http.post('/activation/activate', {
+      code: activationCode.value
+    })
+
+    toast.success(response.data.message)
+    // 更新用户信息
+    await fetchUserInfo()
+    // 清空输入框
+    activationCode.value = ''
+  } catch (err) {
+    toast.error(err.response?.data?.error || '激活失败')
+  } finally {
+    activating.value = false
+  }
+}
+
 onMounted(() => {
   fetchUserInfo()
 })
@@ -262,5 +330,13 @@ onMounted(() => {
 
 .btn:not(:disabled):hover {
   @apply transform -translate-y-0.5;
+}
+
+.stat-title {
+  @apply text-base-content/60 text-sm;
+}
+
+.stat-value {
+  @apply text-base-content font-medium;
 }
 </style> 
