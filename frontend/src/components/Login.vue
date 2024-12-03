@@ -202,7 +202,7 @@ const processAuth = async () => {
 
 <style scoped>
 .bg-login {
-  background-image: url('/images/hero-bg.jpg');
+  background-image: url('https://objectstorageapi.bja.sealos.run/g6rnmc1y-mymy/hero-bg.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

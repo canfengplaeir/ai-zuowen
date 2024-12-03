@@ -53,19 +53,23 @@ def login():
     if not user:
         return jsonify({"error": "用户名或密码错误"}), 401
 
-    auth_service = AuthService(current_app.config["SECRET_KEY"])
+    auth_service = AuthService(str(current_app.config["SECRET_KEY"]))
     if not auth_service.verify_password(password, user.password.encode("utf-8")):
         return jsonify({"error": "用户名或密码错误"}), 401
 
-    token = auth_service.generate_token(user.id)
-    return jsonify(
-        {
-            "token": token,
-            "user_id": user.id,
-            "username": user.username,
-            "is_admin": user.is_admin,
-        }
-    )
+    try:
+        token = auth_service.generate_token(user.id)
+        return jsonify(
+            {
+                "token": token,
+                "user_id": user.id,
+                "username": user.username,
+                "is_admin": user.is_admin,
+            }
+        )
+    except Exception as e:
+        current_app.logger.error(f"生成token失败: {str(e)}")
+        return jsonify({"error": "登录失败，请重试"}), 500
 
 
 @bp.route("/user/profile", methods=["GET"])

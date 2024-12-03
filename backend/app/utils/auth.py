@@ -9,7 +9,7 @@ from ..models import User, db
 
 class AuthService:
     def __init__(self, secret_key: str):
-        self.secret_key = secret_key
+        self.secret_key = str(secret_key) if secret_key else "default-secret-key"
 
     def generate_token(self, user_id: int) -> str:
         """生成JWT令牌"""

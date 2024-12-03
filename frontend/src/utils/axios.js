@@ -2,7 +2,7 @@ import axios from 'axios'
 import { authStore } from '../stores/auth'
 
 const http = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://121.199.22.180:5000/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
